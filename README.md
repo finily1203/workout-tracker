@@ -8,8 +8,8 @@ A fully serverless, cloud-native web application built on **Amazon Web Services 
 
 ## 🌐 Live Demo
 
-**S3 Hosted URL:**
-http://workout-tracker-app-21.s3-website-us-east-1.amazonaws.com
+**CloudFront URL (HTTPS):**
+https://d3r1z6dwo5m47x.cloudfront.net
 
 ---
 
@@ -21,6 +21,7 @@ http://workout-tracker-app-21.s3-website-us-east-1.amazonaws.com
 - 📈 **Progress Charts** — Interactive line charts showing strength progression over time (Recharts)
 - 🤖 **AI Recommendations** — Personalised next workout suggestions powered by Groq (LLaMA 3.3)
 - ☁️ **Fully Serverless** — No servers to manage; auto-scales with demand
+- 🏗️ **Infrastructure as Code** — Entire AWS infrastructure defined and deployed with Terraform
 
 ---
 
@@ -29,7 +30,7 @@ http://workout-tracker-app-21.s3-website-us-east-1.amazonaws.com
 ```
 ┌─────────────────────────────────────────────────────┐
 │                     Frontend                         │
-│         React.js SPA hosted on Amazon S3             │
+│    React.js SPA hosted on Amazon S3 + CloudFront     │
 └─────────────────────┬───────────────────────────────┘
                       │ HTTPS
 ┌─────────────────────▼───────────────────────────────┐
@@ -64,7 +65,9 @@ http://workout-tracker-app-21.s3-website-us-east-1.amazonaws.com
 | Database | Amazon DynamoDB |
 | AI Recommendations | Groq API (LLaMA 3.3 70B) |
 | Charts | Recharts |
-| Hosting | Amazon S3 (Static Website) |
+| Hosting | Amazon S3 + CloudFront (HTTPS) |
+| Infrastructure as Code | Terraform |
+| Region | ap-southeast-1 (Singapore) |
 
 ---
 
@@ -84,6 +87,23 @@ workout-tracker/
 │   │   └── HistoryPage.jsx      # History + progress charts
 │   ├── aws-config.js            # AWS Cognito + API config
 │   └── main.jsx                 # App entry point
+├── lambda/
+│   ├── createSession/           # POST /sessions
+│   ├── getSessions/             # GET /sessions
+│   ├── getSession/              # GET /sessions/{sessionId}
+│   ├── updateSession/           # PUT /sessions/{sessionId}
+│   ├── deleteSession/           # DELETE /sessions/{sessionId}
+│   └── getRecommendation/       # POST /recommend (Groq AI)
+├── terraform/
+│   ├── main.tf                  # Provider config
+│   ├── variables.tf             # Input variables
+│   ├── dynamodb.tf              # DynamoDB tables
+│   ├── lambda.tf                # Lambda functions + IAM role
+│   ├── api_gateway.tf           # API Gateway + routes
+│   ├── cognito.tf               # Cognito User Pool
+│   ├── s3.tf                    # S3 bucket + static hosting
+│   ├── cloudfront.tf            # CloudFront distribution
+│   └── outputs.tf               # Output values
 ├── public/
 ├── index.html
 └── package.json
@@ -95,7 +115,9 @@ workout-tracker/
 
 ### Prerequisites
 - Node.js 18+
-- AWS Account (or Learner Lab)
+- AWS Account
+- Terraform v1.0+
+- AWS CLI v2+
 - Groq API key (free at https://console.groq.com)
 
 ### Installation
@@ -112,9 +134,36 @@ npm install
 npm run dev
 ```
 
-### Configuration
+---
 
-Update `src/aws-config.js` with your own AWS credentials:
+## ☁️ Deploy with Terraform
+
+The easiest way to deploy — one command creates all AWS resources automatically.
+
+### Step 1 — Configure AWS CLI
+```bash
+aws configure
+# Enter your Access Key, Secret Key, region (ap-southeast-1), output (json)
+```
+
+### Step 2 — Deploy Infrastructure
+```bash
+cd terraform
+terraform init
+terraform apply
+# Enter your Groq API key when prompted
+```
+
+Terraform will create:
+- ✅ DynamoDB tables
+- ✅ Lambda functions
+- ✅ API Gateway + routes
+- ✅ Cognito User Pool
+- ✅ S3 bucket
+- ✅ CloudFront distribution
+
+### Step 3 — Update Frontend Config
+Copy the output values from Terraform and update `src/aws-config.js`:
 
 ```javascript
 export const awsConfig = {
@@ -122,7 +171,7 @@ export const awsConfig = {
         Cognito: {
             userPoolId: "YOUR_USER_POOL_ID",
             userPoolClientId: "YOUR_CLIENT_ID",
-            region: "us-east-1"
+            region: "ap-southeast-1"
         }
     }
 };
@@ -130,11 +179,18 @@ export const awsConfig = {
 export const API_URL = "YOUR_API_GATEWAY_URL";
 ```
 
-### AWS Setup Required
-1. **DynamoDB** — Create `WorkoutSessions` and `Users` tables
-2. **Lambda** — Deploy all 6 functions from `/lambda` folder
-3. **API Gateway** — Create HTTP API with routes pointing to Lambda
-4. **Cognito** — Create User Pool with email sign-in
+### Step 4 — Build and Deploy Frontend
+```bash
+cd ..
+npm run build
+aws s3 sync dist/ s3://YOUR_S3_BUCKET_NAME --delete
+```
+
+### Tear Down (Save Costs)
+```bash
+cd terraform
+terraform destroy
+```
 
 ---
 
@@ -166,9 +222,10 @@ export const API_URL = "YOUR_API_GATEWAY_URL";
 ## 🔒 Security
 
 - All API routes protected via **Amazon Cognito JWT authorizer**
-- IAM **least-privilege roles** applied to Lambda functions
-- All data encrypted **in transit** (HTTPS) and **at rest** (DynamoDB default encryption)
-- API keys stored securely — never committed to source control
+- IAM **least-privilege roles** applied to Lambda functions via Terraform
+- All data encrypted **in transit** (HTTPS via CloudFront) and **at rest** (DynamoDB default encryption)
+- API keys injected as **Lambda environment variables** — never hardcoded or committed to source control
+- Groq API key managed securely via Terraform sensitive variables
 
 ---
 
@@ -192,7 +249,7 @@ export const API_URL = "YOUR_API_GATEWAY_URL";
 
 | Name | Student ID | Role |
 |---|---|---|
-| Liu YaoTing | 2301427 | Frontend, Backend, Database, AI Integration, Deployment |
+| Liu YaoTing | 2301427 | Frontend, Backend, Database, AI Integration, Terraform, Deployment |
 | Yang YuJie | 2301383 | Authentication |
 | Ian Loi | 2301393 | AI Recommendations & API Layer |
 
