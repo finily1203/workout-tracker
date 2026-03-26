@@ -1,6 +1,8 @@
 # 💪 Cloud-Based Smart Workout Tracker
 
-A fully serverless, cloud-native web application built on **Amazon Web Services (AWS)** that enables users to log workout sessions, track fitness progress, and receive AI-powered training recommendations.
+![Deploy](https://github.com/finily1203/workout-tracker/actions/workflows/deploy.yml/badge.svg)
+
+A fully serverless, cloud-native web application built on **Amazon Web Services (AWS)** that enables users to log workout sessions, track fitness progress, and receive AI-powered training recommendations via an intelligent fitness chatbot.
 
 > Built as part of CSC3156 - Mobile and Cloud Computing at Singapore Institute of Technology (SIT)
 
@@ -19,9 +21,12 @@ https://d3r1z6dwo5m47x.cloudfront.net
 - 🏋️ **Workout Logging** — Log exercises, sets, reps, and weight in real time
 - 📋 **Session History** — View all past workout sessions with full exercise details
 - 📈 **Progress Charts** — Interactive line charts showing strength progression over time (Recharts)
-- 🤖 **AI Recommendations** — Personalised next workout suggestions powered by Groq (LLaMA 3.3)
+- 🤖 **AI Fitness Chatbot** — Conversational AI coach powered by Groq (LLaMA 3.3) available on every page
+- 📝 **Workout Templates** — Pre-built 3-day Push/Pull/Legs split templates
 - ☁️ **Fully Serverless** — No servers to manage; auto-scales with demand
 - 🏗️ **Infrastructure as Code** — Entire AWS infrastructure defined and deployed with Terraform
+- 🐳 **Containerised** — Docker + Nginx for consistent builds
+- 🚀 **CI/CD Pipeline** — Automated deployment via GitHub Actions on every push
 
 ---
 
@@ -47,9 +52,25 @@ https://d3r1z6dwo5m47x.cloudfront.net
            │                      │
 ┌──────────▼──────┐    ┌──────────▼──────────────────┐
 │   DynamoDB      │    │       Groq API               │
-│ WorkoutSessions │    │  AI Workout Recommendations  │
+│ WorkoutSessions │    │  AI Fitness Chatbot          │
 │ Users           │    │  (LLaMA 3.3 70B Versatile)   │
 └─────────────────┘    └─────────────────────────────┘
+```
+
+## 🚀 CI/CD Pipeline
+
+```
+git push to main
+        ↓
+GitHub Actions triggered
+        ↓
+Docker builds React app (Nginx)
+        ↓
+Deploy to Amazon S3
+        ↓
+Invalidate CloudFront cache
+        ↓
+Live in ~36 seconds ✅
 ```
 
 ---
@@ -63,10 +84,12 @@ https://d3r1z6dwo5m47x.cloudfront.net
 | API Layer | Amazon API Gateway (HTTP API) |
 | Backend Logic | AWS Lambda (Node.js 22.x) |
 | Database | Amazon DynamoDB |
-| AI Recommendations | Groq API (LLaMA 3.3 70B) |
+| AI Chatbot | Groq API (LLaMA 3.3 70B) |
 | Charts | Recharts |
 | Hosting | Amazon S3 + CloudFront (HTTPS) |
 | Infrastructure as Code | Terraform |
+| Containerisation | Docker + Nginx |
+| CI/CD | GitHub Actions |
 | Region | ap-southeast-1 (Singapore) |
 
 ---
@@ -79,11 +102,12 @@ workout-tracker/
 │   ├── api/
 │   │   └── sessions.js          # API calls to Lambda functions
 │   ├── components/
-│   │   └── Navbar.jsx           # Navigation bar
+│   │   ├── Navbar.jsx           # Navigation bar
+│   │   └── ChatBot.jsx          # AI fitness chatbot (floating panel)
 │   ├── pages/
 │   │   ├── LoginPage.jsx        # Cognito authentication
-│   │   ├── DashboardPage.jsx    # Home + AI recommendations
-│   │   ├── NewSessionPage.jsx   # Workout logging
+│   │   ├── DashboardPage.jsx    # Home dashboard
+│   │   ├── NewSessionPage.jsx   # Workout logging + templates
 │   │   └── HistoryPage.jsx      # History + progress charts
 │   ├── aws-config.js            # AWS Cognito + API config
 │   └── main.jsx                 # App entry point
@@ -93,7 +117,7 @@ workout-tracker/
 │   ├── getSession/              # GET /sessions/{sessionId}
 │   ├── updateSession/           # PUT /sessions/{sessionId}
 │   ├── deleteSession/           # DELETE /sessions/{sessionId}
-│   └── getRecommendation/       # POST /recommend (Groq AI)
+│   └── getRecommendation/       # POST /recommend (Groq AI chatbot)
 ├── terraform/
 │   ├── main.tf                  # Provider config
 │   ├── variables.tf             # Input variables
@@ -104,6 +128,11 @@ workout-tracker/
 │   ├── s3.tf                    # S3 bucket + static hosting
 │   ├── cloudfront.tf            # CloudFront distribution
 │   └── outputs.tf               # Output values
+├── .github/
+│   └── workflows/
+│       └── deploy.yml           # GitHub Actions CI/CD pipeline
+├── Dockerfile                   # Multi-stage Docker build
+├── nginx.conf                   # Nginx web server config
 ├── public/
 ├── index.html
 └── package.json
@@ -118,9 +147,10 @@ workout-tracker/
 - AWS Account
 - Terraform v1.0+
 - AWS CLI v2+
+- Docker
 - Groq API key (free at https://console.groq.com)
 
-### Installation
+### Local Development
 
 ```bash
 # Clone the repository
@@ -134,11 +164,23 @@ npm install
 npm run dev
 ```
 
+### Run with Docker
+
+```bash
+# Build Docker image
+docker build -t workout-tracker .
+
+# Run container
+docker run -p 3000:80 workout-tracker
+
+# Visit http://localhost:3000
+```
+
 ---
 
 ## ☁️ Deploy with Terraform
 
-The easiest way to deploy — one command creates all AWS resources automatically.
+One command creates all AWS resources automatically.
 
 ### Step 1 — Configure AWS CLI
 ```bash
@@ -179,12 +221,18 @@ export const awsConfig = {
 export const API_URL = "YOUR_API_GATEWAY_URL";
 ```
 
-### Step 4 — Build and Deploy Frontend
-```bash
-cd ..
-npm run build
-aws s3 sync dist/ s3://YOUR_S3_BUCKET_NAME --delete
-```
+### Step 4 — Set Up CI/CD (GitHub Actions)
+
+Add these secrets to your GitHub repository under Settings → Secrets:
+
+| Secret | Description |
+|---|---|
+| `AWS_ACCESS_KEY_ID` | AWS access key |
+| `AWS_SECRET_ACCESS_KEY` | AWS secret key |
+| `S3_BUCKET` | S3 bucket name |
+| `CLOUDFRONT_DISTRIBUTION_ID` | CloudFront distribution ID |
+
+Every push to `main` will automatically build and deploy!
 
 ### Tear Down (Save Costs)
 ```bash
@@ -226,6 +274,7 @@ terraform destroy
 - All data encrypted **in transit** (HTTPS via CloudFront) and **at rest** (DynamoDB default encryption)
 - API keys injected as **Lambda environment variables** — never hardcoded or committed to source control
 - Groq API key managed securely via Terraform sensitive variables
+- GitHub Actions secrets for CI/CD credentials
 
 ---
 
@@ -234,14 +283,20 @@ terraform destroy
 ### Login Page
 > Secure authentication powered by AWS Amplify + Cognito
 
-### Dashboard with AI Recommendations
-> Personalised workout suggestions based on training history
+### Dashboard
+> Clean home screen with quick actions and AI coach hint
+
+### Workout Templates
+> Pre-built Push / Pull / Legs 3-day split templates
 
 ### Workout Logging
-> Log exercises with sets, reps, and weight
+> Log exercises with sets, reps, weight and coach notes
 
 ### Progress Charts
-> Track strength progression over time
+> Track strength progression over time per exercise
+
+### AI Fitness Chatbot
+> Floating side panel chatbot available on every page
 
 ---
 
@@ -249,7 +304,7 @@ terraform destroy
 
 | Name | Student ID | Role |
 |---|---|---|
-| Liu YaoTing | 2301427 | Frontend, Backend, Database, AI Integration, Terraform, Deployment |
+| Liu YaoTing | 2301427 | Frontend, Backend, Database, AI Chatbot, Terraform, Docker, CI/CD |
 | Yang YuJie | 2301383 | Authentication |
 | Ian Loi | 2301393 | AI Recommendations & API Layer |
 
