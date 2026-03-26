@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { getCurrentUser, signOut } from "aws-amplify/auth";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
+import ChatBot from "./components/ChatBot";
 
 function App() {
     const [user, setUser] = useState(null);
@@ -27,12 +28,15 @@ function App() {
         setUser(null);
     };
 
-    if (loading) return <div style={{ padding: "2rem" }}>Loading...</div>;
+    if (loading) return <div style={{ padding: "2rem", color: "white" }}>Loading...</div>;
 
     return (
         <div>
             {user ? (
-                <DashboardPage user={user} onSignOut={handleSignOut} />
+                <>
+                    <DashboardPage user={user} onSignOut={handleSignOut} />
+                    <ChatBot userId={user.userId || user.username} />
+                </>
             ) : (
                 <LoginPage onLogin={checkUser} />
             )}
