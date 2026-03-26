@@ -5,7 +5,7 @@ import {
     Tooltip, ResponsiveContainer
 } from "recharts";
 
-const CHART_COLORS = ["#007AFF", "#FF3B30", "#FF9500", "#34C759", "#AF52DE"];
+const CHART_COLORS = ["#0A84FF", "#FF453A", "#FF9F0A", "#30D158", "#BF5AF2"];
 
 function HistoryPage({ userId, onBack }) {
     const [sessions, setSessions] = useState([]);
@@ -48,7 +48,7 @@ function HistoryPage({ userId, onBack }) {
     const exerciseNames = Object.keys(chartData);
 
     const sectionLabel = {
-        fontSize: "13px", fontWeight: "600", color: "#8E8E93",
+        fontSize: "12px", fontWeight: "600", color: "#8E8E93",
         textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "10px",
     };
 
@@ -56,12 +56,12 @@ function HistoryPage({ userId, onBack }) {
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "40vh", gap: "12px" }}>
             <div style={{
                 width: "40px", height: "40px", borderRadius: "10px",
-                background: "#007AFF", display: "flex", alignItems: "center",
+                background: "#0A84FF", display: "flex", alignItems: "center",
                 justifyContent: "center", fontSize: "20px",
                 animation: "pulse 1.5s ease-in-out infinite",
             }}>📋</div>
             <p style={{ color: "#8E8E93", fontSize: "15px" }}>Loading sessions...</p>
-            <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }`}</style>
+            <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
         </div>
     );
 
@@ -72,14 +72,12 @@ function HistoryPage({ userId, onBack }) {
                 <button
                     onClick={onBack}
                     style={{
-                        background: "#E5E5EA", border: "none", color: "#000",
+                        background: "#2C2C2E", border: "none", color: "#FFFFFF",
                         padding: "7px 14px", borderRadius: "10px", cursor: "pointer",
                         fontSize: "14px", fontWeight: "500",
                     }}
-                >
-                    ← Back
-                </button>
-                <h2 style={{ fontSize: "28px", fontWeight: "700" }}>History</h2>
+                >← Back</button>
+                <h2 style={{ fontSize: "28px", fontWeight: "700", color: "#FFFFFF" }}>History</h2>
             </div>
 
             {/* Progress Charts */}
@@ -89,23 +87,19 @@ function HistoryPage({ userId, onBack }) {
                     <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                         {exerciseNames.map((name, i) => (
                             <div key={name} style={{
-                                background: "#FFFFFF",
-                                borderRadius: "16px",
-                                padding: "16px",
-                                boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                                background: "#1C1C1E", borderRadius: "16px",
+                                padding: "16px", border: "1px solid #38383A",
                             }}>
-                                <p style={{ fontWeight: "600", fontSize: "15px", color: "#000", marginBottom: "12px" }}>{name}</p>
+                                <p style={{ fontWeight: "600", fontSize: "15px", color: "#FFFFFF", marginBottom: "12px" }}>{name}</p>
                                 <ResponsiveContainer width="100%" height={180}>
                                     <LineChart data={chartData[name]}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="#F2F2F7" />
-                                        <XAxis dataKey="date" stroke="#C7C7CC" tick={{ fontSize: 11 }} />
-                                        <YAxis stroke="#C7C7CC" unit="kg" tick={{ fontSize: 11 }} width={40} />
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#2C2C2E" />
+                                        <XAxis dataKey="date" stroke="#48484A" tick={{ fontSize: 11, fill: "#8E8E93" }} />
+                                        <YAxis stroke="#48484A" unit="kg" tick={{ fontSize: 11, fill: "#8E8E93" }} width={40} />
                                         <Tooltip
                                             contentStyle={{
-                                                background: "#FFFFFF", border: "none",
-                                                borderRadius: "10px", color: "#000",
-                                                boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
-                                                fontSize: "13px",
+                                                background: "#2C2C2E", border: "1px solid #38383A",
+                                                borderRadius: "10px", color: "#FFFFFF", fontSize: "13px",
                                             }}
                                             formatter={(val) => [`${val} kg`, "Max Weight"]}
                                         />
@@ -114,7 +108,7 @@ function HistoryPage({ userId, onBack }) {
                                             dataKey="weight"
                                             stroke={CHART_COLORS[i % CHART_COLORS.length]}
                                             strokeWidth={2.5}
-                                            dot={{ r: 4, strokeWidth: 2, fill: "#FFFFFF" }}
+                                            dot={{ r: 4, strokeWidth: 2, fill: "#1C1C1E" }}
                                             activeDot={{ r: 6 }}
                                             name="Max Weight (kg)"
                                         />
@@ -131,11 +125,11 @@ function HistoryPage({ userId, onBack }) {
 
             {sessions.length === 0 ? (
                 <div style={{
-                    background: "#FFFFFF", borderRadius: "16px", padding: "40px 20px",
-                    textAlign: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                    background: "#1C1C1E", borderRadius: "16px", padding: "40px 20px",
+                    textAlign: "center", border: "1px solid #38383A",
                 }}>
                     <div style={{ fontSize: "40px", marginBottom: "12px" }}>🏋️</div>
-                    <p style={{ fontWeight: "600", fontSize: "16px", color: "#000", marginBottom: "6px" }}>No sessions yet</p>
+                    <p style={{ fontWeight: "600", fontSize: "16px", color: "#FFFFFF", marginBottom: "6px" }}>No sessions yet</p>
                     <p style={{ color: "#8E8E93", fontSize: "14px" }}>Start your first workout to see your history here.</p>
                 </div>
             ) : (
@@ -144,30 +138,25 @@ function HistoryPage({ userId, onBack }) {
                         const isExpanded = expandedSession === s.sessionId;
                         return (
                             <div key={s.sessionId} style={{
-                                background: "#FFFFFF",
-                                borderRadius: "16px",
-                                overflow: "hidden",
-                                boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                                background: "#1C1C1E", borderRadius: "16px",
+                                overflow: "hidden", border: "1px solid #38383A",
                             }}>
-                                {/* Session header — tappable to expand */}
                                 <div
                                     onClick={() => setExpandedSession(isExpanded ? null : s.sessionId)}
                                     style={{
-                                        padding: "16px",
-                                        display: "flex",
-                                        justifyContent: "space-between",
-                                        alignItems: "center",
+                                        padding: "16px", display: "flex",
+                                        justifyContent: "space-between", alignItems: "center",
                                         cursor: "pointer",
                                     }}
                                 >
                                     <div>
-                                        <p style={{ fontWeight: "600", fontSize: "15px", color: "#000", marginBottom: "4px" }}>
+                                        <p style={{ fontWeight: "600", fontSize: "15px", color: "#FFFFFF", marginBottom: "6px" }}>
                                             {new Date(s.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
                                         </p>
                                         <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
                                             {s.muscleGroups?.map((mg, i) => (
                                                 <span key={i} style={{
-                                                    background: "#F2F2F7", color: "#3C3C43",
+                                                    background: "#2C2C2E", color: "#8E8E93",
                                                     padding: "2px 8px", borderRadius: "20px",
                                                     fontSize: "12px", fontWeight: "500",
                                                 }}>{mg}</span>
@@ -179,17 +168,16 @@ function HistoryPage({ userId, onBack }) {
                                             {s.exercises?.length || 0} exercises
                                         </span>
                                         <span style={{
-                                            color: "#C7C7CC", fontSize: "12px",
+                                            color: "#48484A", fontSize: "12px",
+                                            display: "inline-block",
                                             transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
                                             transition: "transform 0.2s ease",
-                                            display: "inline-block",
                                         }}>▼</span>
                                     </div>
                                 </div>
 
-                                {/* Expanded details */}
                                 {isExpanded && (
-                                    <div style={{ borderTop: "1px solid #F2F2F7", padding: "14px 16px" }}>
+                                    <div style={{ borderTop: "1px solid #38383A", padding: "14px 16px" }}>
                                         {s.notes && (
                                             <p style={{ color: "#8E8E93", fontSize: "13px", marginBottom: "12px", fontStyle: "italic" }}>
                                                 "{s.notes}"
@@ -197,11 +185,11 @@ function HistoryPage({ userId, onBack }) {
                                         )}
                                         {s.exercises?.map((ex, i) => (
                                             <div key={i} style={{ marginBottom: "10px" }}>
-                                                <p style={{ fontWeight: "600", fontSize: "14px", color: "#000", marginBottom: "4px" }}>{ex.name}</p>
+                                                <p style={{ fontWeight: "600", fontSize: "14px", color: "#FFFFFF", marginBottom: "6px" }}>{ex.name}</p>
                                                 <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
                                                     {ex.sets?.map((set, j) => (
                                                         <span key={j} style={{
-                                                            background: "#F2F2F7", color: "#3C3C43",
+                                                            background: "#2C2C2E", color: "#8E8E93",
                                                             padding: "3px 10px", borderRadius: "20px",
                                                             fontSize: "12px", fontWeight: "500",
                                                         }}>
@@ -214,15 +202,12 @@ function HistoryPage({ userId, onBack }) {
                                         <button
                                             onClick={() => handleDelete(s.sessionId)}
                                             style={{
-                                                background: "rgba(255,59,48,0.08)", border: "none",
-                                                color: "#FF3B30", padding: "8px 14px",
+                                                background: "rgba(255,69,58,0.12)", border: "none",
+                                                color: "#FF453A", padding: "8px 14px",
                                                 borderRadius: "8px", cursor: "pointer",
-                                                fontSize: "13px", fontWeight: "500",
-                                                marginTop: "4px",
+                                                fontSize: "13px", fontWeight: "500", marginTop: "4px",
                                             }}
-                                        >
-                                            Delete Session
-                                        </button>
+                                        >Delete Session</button>
                                     </div>
                                 )}
                             </div>

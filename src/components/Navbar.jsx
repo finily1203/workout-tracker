@@ -7,10 +7,10 @@ function Navbar({ onSignOut, setPage, currentPage }) {
 
     return (
         <nav style={{
-            background: "rgba(242, 242, 247, 0.85)",
+            background: "rgba(0, 0, 0, 0.85)",
             backdropFilter: "blur(20px)",
             WebkitBackdropFilter: "blur(20px)",
-            borderBottom: "1px solid #E5E5EA",
+            borderBottom: "1px solid #38383A",
             padding: "0 20px",
             display: "flex",
             justifyContent: "space-between",
@@ -23,7 +23,7 @@ function Navbar({ onSignOut, setPage, currentPage }) {
             <div style={{
                 fontWeight: "700",
                 fontSize: "17px",
-                color: "#000",
+                color: "#FFFFFF",
                 letterSpacing: "-0.3px",
                 display: "flex",
                 alignItems: "center",
@@ -39,9 +39,9 @@ function Navbar({ onSignOut, setPage, currentPage }) {
                         key={item.id}
                         onClick={() => setPage(item.id)}
                         style={{
-                            background: currentPage === item.id ? "rgba(0,122,255,0.1)" : "transparent",
+                            background: currentPage === item.id ? "rgba(10,132,255,0.2)" : "transparent",
                             border: "none",
-                            color: currentPage === item.id ? "#007AFF" : "#8E8E93",
+                            color: currentPage === item.id ? "#0A84FF" : "#8E8E93",
                             padding: "6px 12px",
                             borderRadius: "8px",
                             cursor: "pointer",
@@ -58,8 +58,8 @@ function Navbar({ onSignOut, setPage, currentPage }) {
                     onClick={onSignOut}
                     style={{
                         background: "transparent",
-                        border: "1px solid #E5E5EA",
-                        color: "#FF3B30",
+                        border: "1px solid #38383A",
+                        color: "#FF453A",
                         padding: "6px 12px",
                         borderRadius: "8px",
                         cursor: "pointer",
