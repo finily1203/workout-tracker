@@ -3,77 +3,112 @@ import HistoryPage from "./HistoryPage";
 import NewSessionPage from "./NewSessionPage";
 import Navbar from "../components/Navbar";
 
+const getGreeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return "Good morning";
+    if (h < 17) return "Good afternoon";
+    return "Good evening";
+};
+
 function DashboardPage({ user, onSignOut }) {
     const [page, setPage] = useState("dashboard");
     const userId = user.userId || user.username;
+    const displayName = user.signInDetails?.loginId?.split("@")[0] || "there";
 
     return (
-        <div>
-            <Navbar onSignOut={onSignOut} setPage={setPage} />
-            <div style={{ padding: "2rem" }}>
+        <div style={{ background: "#F2F2F7", minHeight: "100vh" }}>
+            <Navbar onSignOut={onSignOut} setPage={setPage} currentPage={page} />
+
+            <div style={{ padding: "28px 20px", maxWidth: "680px", margin: "0 auto" }}>
                 {page === "dashboard" && (
-                    <div style={{ maxWidth: "800px", margin: "0 auto" }}>
-                        <h1 style={{ color: "white", fontSize: "2rem", fontWeight: "700", marginBottom: "0.5rem" }}>
-                            Welcome! 👋
-                        </h1>
-                        <p style={{ color: "#aaa", marginBottom: "2rem" }}>
-                            Track your workouts and monitor your progress.
-                        </p>
+                    <div>
+                        {/* Greeting */}
+                        <div style={{ marginBottom: "28px" }}>
+                            <p style={{ color: "#8E8E93", fontSize: "15px", marginBottom: "4px" }}>
+                                {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+                            </p>
+                            <h1 style={{ fontSize: "34px", fontWeight: "700", letterSpacing: "-0.5px", color: "#000" }}>
+                                {getGreeting()}, {displayName}
+                            </h1>
+                        </div>
 
                         {/* Quick Actions */}
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", maxWidth: "500px" }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
                             <button
                                 onClick={() => setPage("new")}
                                 style={{
-                                    background: "linear-gradient(135deg, #4CAF50, #45a049)",
+                                    background: "#007AFF",
                                     border: "none",
                                     color: "white",
-                                    padding: "1.2rem",
+                                    padding: "20px",
                                     borderRadius: "16px",
                                     cursor: "pointer",
-                                    fontSize: "1rem",
-                                    fontWeight: "600",
-                                    textAlign: "left"
-                                }}>
-                                💪 New Session
+                                    textAlign: "left",
+                                    boxShadow: "0 4px 16px rgba(0,122,255,0.28)",
+                                    transition: "transform 0.15s ease",
+                                }}
+                                onMouseDown={e => e.currentTarget.style.transform = "scale(0.97)"}
+                                onMouseUp={e => e.currentTarget.style.transform = "scale(1)"}
+                                onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+                            >
+                                <div style={{ fontSize: "28px", marginBottom: "10px" }}>💪</div>
+                                <div style={{ fontWeight: "700", fontSize: "16px" }}>New Session</div>
+                                <div style={{ fontSize: "13px", opacity: 0.8, marginTop: "3px" }}>Log your workout</div>
                             </button>
+
                             <button
                                 onClick={() => setPage("history")}
                                 style={{
-                                    background: "rgba(255,255,255,0.06)",
-                                    border: "1px solid rgba(255,255,255,0.1)",
-                                    color: "white",
-                                    padding: "1.2rem",
+                                    background: "#FFFFFF",
+                                    border: "none",
+                                    color: "#000",
+                                    padding: "20px",
                                     borderRadius: "16px",
                                     cursor: "pointer",
-                                    fontSize: "1rem",
-                                    fontWeight: "600",
-                                    textAlign: "left"
-                                }}>
-                                📋 View History
+                                    textAlign: "left",
+                                    boxShadow: "0 2px 8px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.05)",
+                                    transition: "transform 0.15s ease",
+                                }}
+                                onMouseDown={e => e.currentTarget.style.transform = "scale(0.97)"}
+                                onMouseUp={e => e.currentTarget.style.transform = "scale(1)"}
+                                onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+                            >
+                                <div style={{ fontSize: "28px", marginBottom: "10px" }}>📋</div>
+                                <div style={{ fontWeight: "700", fontSize: "16px" }}>History</div>
+                                <div style={{ fontSize: "13px", color: "#8E8E93", marginTop: "3px" }}>View past sessions</div>
                             </button>
                         </div>
 
-                        {/* Hint about chatbot */}
+                        {/* AI Coach hint */}
                         <div style={{
-                            marginTop: "2rem",
-                            padding: "1rem 1.2rem",
-                            background: "rgba(76,175,80,0.08)",
-                            border: "1px solid rgba(76,175,80,0.15)",
-                            borderRadius: "12px",
-                            maxWidth: "500px",
+                            background: "#FFFFFF",
+                            borderRadius: "16px",
+                            padding: "16px",
                             display: "flex",
                             alignItems: "center",
-                            gap: "0.8rem"
+                            gap: "14px",
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
                         }}>
-                            <span style={{ fontSize: "1.5rem" }}>🤖</span>
-                            <div>
-                                <div style={{ color: "white", fontWeight: "600", fontSize: "0.9rem" }}>AI Fitness Coach available</div>
-                                <div style={{ color: "#4CAF50", fontSize: "0.8rem" }}>Click the button at the bottom right to chat</div>
+                            <div style={{
+                                width: "44px", height: "44px", borderRadius: "12px",
+                                background: "linear-gradient(135deg, #34C759, #007AFF)",
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                fontSize: "22px", flexShrink: 0,
+                            }}>🤖</div>
+                            <div style={{ flex: 1 }}>
+                                <div style={{ fontWeight: "600", fontSize: "15px", color: "#000" }}>AI Fitness Coach</div>
+                                <div style={{ color: "#8E8E93", fontSize: "13px", marginTop: "2px" }}>
+                                    Tap the button at the bottom right to chat
+                                </div>
                             </div>
+                            <div style={{
+                                width: "8px", height: "8px", borderRadius: "50%",
+                                background: "#34C759", flexShrink: 0,
+                            }} />
                         </div>
                     </div>
                 )}
+
                 {page === "new" && (
                     <NewSessionPage userId={userId} onBack={() => setPage("dashboard")} />
                 )}

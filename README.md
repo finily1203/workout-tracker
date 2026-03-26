@@ -269,12 +269,15 @@ terraform destroy
 
 ## 🔒 Security
 
-- All API routes protected via **Amazon Cognito JWT authorizer**
-- IAM **least-privilege roles** applied to Lambda functions via Terraform
-- All data encrypted **in transit** (HTTPS via CloudFront) and **at rest** (DynamoDB default encryption)
-- API keys injected as **Lambda environment variables** — never hardcoded or committed to source control
-- Groq API key managed securely via Terraform sensitive variables
-- GitHub Actions secrets for CI/CD credentials
+- All data encrypted **in transit** — CloudFront enforces HTTPS via `redirect-to-https` policy (`terraform/cloudfront.tf`)
+- DynamoDB encrypted **at rest** by default (AWS-managed encryption)
+- Groq API key injected as a **Lambda environment variable** via Terraform `sensitive` variable — never hardcoded or committed to source control (`terraform/variables.tf`, `terraform/lambda.tf`)
+- GitHub Actions secrets used for CI/CD credentials (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, etc.)
+- Cognito enforces password policy (min 8 chars, mixed case, numbers) and email verification (`terraform/cognito.tf`)
+
+> **Known limitations:**
+> - API Gateway routes do not currently have a JWT authorizer attached — routes are reachable without a valid Cognito token
+> - Lambda IAM role uses `AmazonDynamoDBFullAccess` (AWS managed policy) rather than a least-privilege inline policy scoped to specific table ARNs
 
 ---
 

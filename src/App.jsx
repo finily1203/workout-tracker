@@ -28,7 +28,19 @@ function App() {
         setUser(null);
     };
 
-    if (loading) return <div style={{ padding: "2rem", color: "white" }}>Loading...</div>;
+    if (loading) return (
+        <div style={{
+            display: "flex", alignItems: "center", justifyContent: "center",
+            minHeight: "100svh", background: "#F2F2F7", flexDirection: "column", gap: "12px"
+        }}>
+            <div style={{
+                width: "44px", height: "44px", borderRadius: "12px",
+                background: "#007AFF", display: "flex", alignItems: "center",
+                justifyContent: "center", fontSize: "22px"
+            }}>💪</div>
+            <p style={{ color: "#8E8E93", fontSize: "15px" }}>Loading...</p>
+        </div>
+    );
 
     return (
         <div>
