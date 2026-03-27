@@ -161,7 +161,11 @@ export default function NewSessionPage({ userId, onBack }) {
     const updateSet = (exIdx, setIdx, field, value) => {
         setExercises(prev => prev.map((ex, i) => {
             if (i !== exIdx) return ex;
-            return { ...ex, sets: ex.sets.map((s, j) => j === setIdx ? { ...s, [field]: value } : s) };
+            const newSets = ex.sets.map((s, j) => j === setIdx ? { ...s, [field]: value } : s);
+            if (field === "weight" && setIdx === 0) {
+                return { ...ex, sets: newSets.map(s => ({ ...s, weight: value })) };
+            }
+            return { ...ex, sets: newSets };
         }));
     };
 
