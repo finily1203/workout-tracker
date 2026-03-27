@@ -17,6 +17,32 @@ const formatDuration = (secs) => {
     return `${s}s`;
 };
 
+const calcVolume = (exercises) => {
+    if (!exercises) return 0;
+    return exercises.reduce((total, ex) =>
+        total + ex.sets.reduce((sum, set) => {
+            const r = parseFloat(set.reps) || 0;
+            const w = parseFloat(set.weight) || 0;
+            return sum + r * w;
+        }, 0), 0);
+};
+
+const calcPRs = (sessions) => {
+    const prs = {};
+    sessions.forEach(session => {
+        session.exercises?.forEach(ex => {
+            if (!ex.name) return;
+            ex.sets.forEach(set => {
+                const w = parseFloat(set.weight) || 0;
+                if (w > 0 && (!prs[ex.name] || w > prs[ex.name])) {
+                    prs[ex.name] = w;
+                }
+            });
+        });
+    });
+    return prs;
+};
+
 function HistoryPage({ userId, onBack }) {
     const [sessions, setSessions] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -54,8 +80,17 @@ function HistoryPage({ userId, onBack }) {
         return exerciseMap;
     };
 
+    const buildVolumeChartData = () =>
+        [...sessions].reverse().map(s => ({
+            date: s.date,
+            volume: Math.round(calcVolume(s.exercises)),
+        })).filter(d => d.volume > 0);
+
     const chartData = buildChartData();
     const exerciseNames = Object.keys(chartData);
+    const volumeData = buildVolumeChartData();
+    const prs = calcPRs(sessions);
+    const prEntries = Object.entries(prs);
 
     const sectionLabel = {
         fontSize: "12px", fontWeight: "600", color: "#8E8E93",
@@ -90,11 +125,73 @@ function HistoryPage({ userId, onBack }) {
                 <h2 style={{ fontSize: "28px", fontWeight: "700", color: "#FFFFFF" }}>History</h2>
             </div>
 
-            {/* Progress Charts */}
-            {exerciseNames.length > 0 && (
+            {/* Personal Records */}
+            {prEntries.length > 0 && (
+                <div style={{ marginBottom: "28px" }}>
+                    <p style={sectionLabel}>Personal Records</p>
+                    <div style={{
+                        display: "flex", gap: "10px",
+                        overflowX: "auto", paddingBottom: "6px",
+                        scrollbarWidth: "none",
+                    }}>
+                        {prEntries.map(([name, weight]) => (
+                            <div key={name} style={{
+                                background: "#1C1C1E", border: "1px solid #38383A",
+                                borderRadius: "14px", padding: "14px 16px",
+                                flexShrink: 0, minWidth: "130px",
+                            }}>
+                                <div style={{ fontSize: "18px", marginBottom: "6px" }}>🏆</div>
+                                <p style={{ color: "#FF9F0A", fontSize: "20px", fontWeight: "700", marginBottom: "4px" }}>
+                                    {weight} kg
+                                </p>
+                                <p style={{ color: "#8E8E93", fontSize: "12px", fontWeight: "500", lineHeight: 1.3 }}>
+                                    {name}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Charts */}
+            {(volumeData.length > 0 || exerciseNames.length > 0) && (
                 <div style={{ marginBottom: "28px" }}>
                     <p style={sectionLabel}>Progress Charts</p>
                     <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+
+                        {/* Volume chart */}
+                        {volumeData.length > 1 && (
+                            <div style={{
+                                background: "#1C1C1E", borderRadius: "16px",
+                                padding: "16px", border: "1px solid #38383A",
+                            }}>
+                                <p style={{ fontWeight: "600", fontSize: "15px", color: "#FFFFFF", marginBottom: "12px" }}>
+                                    Total Volume
+                                </p>
+                                <ResponsiveContainer width="100%" height={180}>
+                                    <LineChart data={volumeData}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#2C2C2E" />
+                                        <XAxis dataKey="date" stroke="#48484A" tick={{ fontSize: 11, fill: "#8E8E93" }} />
+                                        <YAxis stroke="#48484A" unit="kg" tick={{ fontSize: 11, fill: "#8E8E93" }} width={55} />
+                                        <Tooltip
+                                            contentStyle={{
+                                                background: "#2C2C2E", border: "1px solid #38383A",
+                                                borderRadius: "10px", color: "#FFFFFF", fontSize: "13px",
+                                            }}
+                                            formatter={(val) => [`${val.toLocaleString()} kg`, "Volume"]}
+                                        />
+                                        <Line
+                                            type="monotone" dataKey="volume"
+                                            stroke="#FF9F0A" strokeWidth={2.5}
+                                            dot={{ r: 4, strokeWidth: 2, fill: "#1C1C1E" }}
+                                            activeDot={{ r: 6 }}
+                                        />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </div>
+                        )}
+
+                        {/* Per-exercise max weight charts */}
                         {exerciseNames.map((name, i) => (
                             <div key={name} style={{
                                 background: "#1C1C1E", borderRadius: "16px",
@@ -114,13 +211,11 @@ function HistoryPage({ userId, onBack }) {
                                             formatter={(val) => [`${val} kg`, "Max Weight"]}
                                         />
                                         <Line
-                                            type="monotone"
-                                            dataKey="weight"
+                                            type="monotone" dataKey="weight"
                                             stroke={CHART_COLORS[i % CHART_COLORS.length]}
                                             strokeWidth={2.5}
                                             dot={{ r: 4, strokeWidth: 2, fill: "#1C1C1E" }}
                                             activeDot={{ r: 6 }}
-                                            name="Max Weight (kg)"
                                         />
                                     </LineChart>
                                 </ResponsiveContainer>
@@ -146,6 +241,7 @@ function HistoryPage({ userId, onBack }) {
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                     {sessions.map(s => {
                         const isExpanded = expandedSession === s.sessionId;
+                        const volume = calcVolume(s.exercises);
                         return (
                             <div key={s.sessionId} style={{
                                 background: "#1C1C1E", borderRadius: "16px",
@@ -173,21 +269,28 @@ function HistoryPage({ userId, onBack }) {
                                             ))}
                                         </div>
                                     </div>
-                                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                                        {formatDuration(s.duration) && (
-                                            <span style={{ color: "#30D158", fontSize: "13px", fontWeight: "600" }}>
-                                                ⏱ {formatDuration(s.duration)}
+                                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
+                                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                            {formatDuration(s.duration) && (
+                                                <span style={{ color: "#30D158", fontSize: "12px", fontWeight: "600" }}>
+                                                    ⏱ {formatDuration(s.duration)}
+                                                </span>
+                                            )}
+                                            <span style={{ color: "#8E8E93", fontSize: "13px" }}>
+                                                {s.exercises?.length || 0} exercises
+                                            </span>
+                                            <span style={{
+                                                color: "#48484A", fontSize: "12px",
+                                                display: "inline-block",
+                                                transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                                                transition: "transform 0.2s ease",
+                                            }}>▼</span>
+                                        </div>
+                                        {volume > 0 && (
+                                            <span style={{ color: "#FF9F0A", fontSize: "12px", fontWeight: "600" }}>
+                                                {Math.round(volume).toLocaleString()} kg vol
                                             </span>
                                         )}
-                                        <span style={{ color: "#8E8E93", fontSize: "13px" }}>
-                                            {s.exercises?.length || 0} exercises
-                                        </span>
-                                        <span style={{
-                                            color: "#48484A", fontSize: "12px",
-                                            display: "inline-block",
-                                            transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
-                                            transition: "transform 0.2s ease",
-                                        }}>▼</span>
                                     </div>
                                 </div>
 
@@ -202,15 +305,21 @@ function HistoryPage({ userId, onBack }) {
                                             <div key={i} style={{ marginBottom: "10px" }}>
                                                 <p style={{ fontWeight: "600", fontSize: "14px", color: "#FFFFFF", marginBottom: "6px" }}>{ex.name}</p>
                                                 <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
-                                                    {ex.sets?.map((set, j) => (
-                                                        <span key={j} style={{
-                                                            background: "#2C2C2E", color: "#8E8E93",
-                                                            padding: "3px 10px", borderRadius: "20px",
-                                                            fontSize: "12px", fontWeight: "500",
-                                                        }}>
-                                                            {set.reps} × {set.weight}kg
-                                                        </span>
-                                                    ))}
+                                                    {ex.sets?.map((set, j) => {
+                                                        const isPR = prs[ex.name] && parseFloat(set.weight) === prs[ex.name] && parseFloat(set.weight) > 0;
+                                                        return (
+                                                            <span key={j} style={{
+                                                                background: isPR ? "rgba(255,159,10,0.15)" : "#2C2C2E",
+                                                                color: isPR ? "#FF9F0A" : "#8E8E93",
+                                                                border: isPR ? "1px solid rgba(255,159,10,0.4)" : "none",
+                                                                padding: "3px 10px", borderRadius: "20px",
+                                                                fontSize: "12px", fontWeight: isPR ? "600" : "500",
+                                                                display: "flex", alignItems: "center", gap: "4px",
+                                                            }}>
+                                                                {isPR && "🏆"}{set.reps} × {set.weight}kg
+                                                            </span>
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
                                         ))}

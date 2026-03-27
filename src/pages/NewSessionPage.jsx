@@ -59,6 +59,8 @@ const formatTime = (secs) => {
 };
 
 export default function NewSessionPage({ userId, onBack }) {
+    const STORAGE_KEY = `activeSession_${userId}`;
+
     const [step, setStep] = useState("template");
     const [notes, setNotes] = useState("");
     const [muscleGroups, setMuscleGroups] = useState([]);
@@ -67,18 +69,61 @@ export default function NewSessionPage({ userId, onBack }) {
     const [saved, setSaved] = useState(false);
     const [selectedTemplate, setSelectedTemplate] = useState(null);
     const [elapsed, setElapsed] = useState(0);
+    const [savedSession, setSavedSession] = useState(null);
     const startTimeRef = useRef(null);
     const intervalRef = useRef(null);
 
+    // Check for saved session on mount
+    useEffect(() => {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (raw) setSavedSession(JSON.parse(raw));
+        } catch {
+            localStorage.removeItem(STORAGE_KEY);
+        }
+    }, []);
+
+    // Auto-save session to localStorage whenever relevant state changes
+    useEffect(() => {
+        if (step === "logging" || step === "active") {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                step,
+                exercises,
+                muscleGroups,
+                notes,
+                selectedTemplate,
+                startTimestamp: startTimeRef.current,
+            }));
+        }
+    }, [step, exercises, muscleGroups, notes, selectedTemplate]);
+
+    // Timer
     useEffect(() => {
         if (step === "active") {
-            startTimeRef.current = Date.now();
+            if (!startTimeRef.current) startTimeRef.current = Date.now();
+            setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000));
             intervalRef.current = setInterval(() => {
                 setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000));
             }, 1000);
         }
         return () => clearInterval(intervalRef.current);
     }, [step]);
+
+    const resumeSession = () => {
+        const s = savedSession;
+        startTimeRef.current = s.startTimestamp;
+        setSelectedTemplate(s.selectedTemplate);
+        setMuscleGroups(s.muscleGroups);
+        setNotes(s.notes);
+        setExercises(s.exercises);
+        setSavedSession(null);
+        setStep(s.step);
+    };
+
+    const discardSaved = () => {
+        localStorage.removeItem(STORAGE_KEY);
+        setSavedSession(null);
+    };
 
     const loadTemplate = (key) => {
         const t = TEMPLATES[key];
@@ -98,6 +143,7 @@ export default function NewSessionPage({ userId, onBack }) {
     };
 
     const startSession = () => {
+        startTimeRef.current = Date.now();
         setExercises(prev => prev.map(ex => ({
             ...ex,
             sets: ex.sets.map(s => ({ ...s, done: false }))
@@ -151,6 +197,7 @@ export default function NewSessionPage({ userId, onBack }) {
 
     const handleSave = async () => {
         clearInterval(intervalRef.current);
+        localStorage.removeItem(STORAGE_KEY);
         setSaving(true);
         try {
             await createSession({ userId, muscleGroups, notes, exercises, duration: elapsed });
@@ -169,26 +216,15 @@ export default function NewSessionPage({ userId, onBack }) {
     const doneSets = exercises.reduce((acc, ex) => acc + ex.sets.filter(s => s.done).length, 0);
 
     const inputStyle = {
-        background: "#2C2C2E",
-        border: "none",
-        borderRadius: "10px",
-        color: "#FFFFFF",
-        padding: "10px 12px",
-        fontSize: "15px",
-        outline: "none",
-        width: "100%",
+        background: "#2C2C2E", border: "none", borderRadius: "10px",
+        color: "#FFFFFF", padding: "10px 12px", fontSize: "15px",
+        outline: "none", width: "100%",
     };
 
     const smallInputStyle = {
-        background: "#2C2C2E",
-        border: "none",
-        borderRadius: "8px",
-        color: "#FFFFFF",
-        padding: "8px 6px",
-        fontSize: "15px",
-        outline: "none",
-        width: "72px",
-        textAlign: "center",
+        background: "#2C2C2E", border: "none", borderRadius: "8px",
+        color: "#FFFFFF", padding: "8px 6px", fontSize: "15px",
+        outline: "none", width: "72px", textAlign: "center",
     };
 
     const sectionLabel = {
@@ -230,6 +266,44 @@ export default function NewSessionPage({ userId, onBack }) {
                 }}>← Back</button>
             </div>
 
+            {/* Resume banner */}
+            {savedSession && (
+                <div style={{
+                    background: "#1C1C1E", border: "1px solid #FF9F0A",
+                    borderRadius: "14px", padding: "14px 16px",
+                    marginBottom: "20px", display: "flex",
+                    alignItems: "center", justifyContent: "space-between", gap: "12px",
+                }}>
+                    <div>
+                        <p style={{ fontWeight: "600", fontSize: "14px", color: "#FF9F0A", marginBottom: "2px" }}>
+                            ⚡ Unfinished session
+                        </p>
+                        <p style={{ color: "#8E8E93", fontSize: "13px" }}>
+                            {savedSession.step === "active" ? "Session was in progress" : "Setup was not completed"}
+                        </p>
+                    </div>
+                    <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
+                        <button
+                            onClick={discardSaved}
+                            style={{
+                                background: "none", border: "1px solid #38383A",
+                                color: "#8E8E93", padding: "7px 12px",
+                                borderRadius: "8px", cursor: "pointer", fontSize: "13px",
+                            }}
+                        >Discard</button>
+                        <button
+                            onClick={resumeSession}
+                            style={{
+                                background: "#FF9F0A", border: "none",
+                                color: "#000000", padding: "7px 14px",
+                                borderRadius: "8px", cursor: "pointer",
+                                fontSize: "13px", fontWeight: "600",
+                            }}
+                        >Resume</button>
+                    </div>
+                </div>
+            )}
+
             <h2 style={{ fontSize: "28px", fontWeight: "700", marginBottom: "4px", color: "#FFFFFF" }}>New Session</h2>
             <p style={{ color: "#8E8E93", fontSize: "15px", marginBottom: "24px" }}>Choose a template or start from scratch</p>
 
@@ -241,13 +315,9 @@ export default function NewSessionPage({ userId, onBack }) {
                         key={key}
                         onClick={() => loadTemplate(key)}
                         style={{
-                            background: "#1C1C1E",
-                            border: `1px solid ${t.color}30`,
-                            borderTop: `3px solid ${t.color}`,
-                            borderRadius: "16px",
-                            padding: "20px",
-                            cursor: "pointer",
-                            transition: "transform 0.15s ease",
+                            background: "#1C1C1E", border: `1px solid ${t.color}30`,
+                            borderTop: `3px solid ${t.color}`, borderRadius: "16px",
+                            padding: "20px", cursor: "pointer", transition: "transform 0.15s ease",
                         }}
                         onMouseDown={e => e.currentTarget.style.transform = "scale(0.97)"}
                         onMouseUp={e => e.currentTarget.style.transform = "scale(1)"}
@@ -275,13 +345,9 @@ export default function NewSessionPage({ userId, onBack }) {
             <div
                 onClick={startBlank}
                 style={{
-                    background: "#1C1C1E",
-                    border: "1.5px dashed #48484A",
-                    borderRadius: "16px",
-                    padding: "20px",
-                    cursor: "pointer",
-                    textAlign: "center",
-                    transition: "transform 0.15s ease",
+                    background: "#1C1C1E", border: "1.5px dashed #48484A",
+                    borderRadius: "16px", padding: "20px", cursor: "pointer",
+                    textAlign: "center", transition: "transform 0.15s ease",
                 }}
                 onMouseDown={e => e.currentTarget.style.transform = "scale(0.98)"}
                 onMouseUp={e => e.currentTarget.style.transform = "scale(1)"}
@@ -322,14 +388,12 @@ export default function NewSessionPage({ userId, onBack }) {
             {/* Progress bar */}
             <div style={{ background: "#2C2C2E", borderRadius: "4px", height: "4px", marginBottom: "20px", overflow: "hidden" }}>
                 <div style={{
-                    height: "100%", borderRadius: "4px",
-                    background: accentColor,
+                    height: "100%", borderRadius: "4px", background: accentColor,
                     width: totalSets > 0 ? `${(doneSets / totalSets) * 100}%` : "0%",
                     transition: "width 0.3s ease",
                 }} />
             </div>
 
-            {/* Exercises */}
             {exercises.map((ex, exIdx) => {
                 const exDone = ex.sets.every(s => s.done);
                 return (
@@ -435,11 +499,9 @@ export default function NewSessionPage({ userId, onBack }) {
                 disabled={saving}
                 style={{
                     background: saving ? "#48484A" : "#30D158",
-                    color: "white", border: "none",
-                    padding: "16px", borderRadius: "14px",
+                    color: "white", border: "none", padding: "16px", borderRadius: "14px",
                     fontSize: "16px", fontWeight: "600",
-                    cursor: saving ? "default" : "pointer",
-                    width: "100%",
+                    cursor: saving ? "default" : "pointer", width: "100%",
                     boxShadow: saving ? "none" : "0 4px 16px rgba(48,209,88,0.3)",
                     transition: "all 0.2s ease",
                 }}
@@ -470,7 +532,6 @@ export default function NewSessionPage({ userId, onBack }) {
             <h2 style={{ fontSize: "28px", fontWeight: "700", marginBottom: "4px", color: "#FFFFFF" }}>Set Up Session</h2>
             <p style={{ color: "#8E8E93", fontSize: "15px", marginBottom: "24px" }}>Add your exercises, then start when ready</p>
 
-            {/* Notes */}
             <div style={{ background: "#1C1C1E", borderRadius: "14px", padding: "16px", marginBottom: "12px", border: "1px solid #38383A" }}>
                 <p style={sectionLabel}>Session Notes</p>
                 <input
@@ -481,7 +542,6 @@ export default function NewSessionPage({ userId, onBack }) {
                 />
             </div>
 
-            {/* Muscle Groups */}
             <div style={{ background: "#1C1C1E", borderRadius: "14px", padding: "16px", marginBottom: "12px", border: "1px solid #38383A" }}>
                 <p style={sectionLabel}>Muscle Groups</p>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
@@ -504,7 +564,6 @@ export default function NewSessionPage({ userId, onBack }) {
                 </div>
             </div>
 
-            {/* Exercises */}
             <div style={{ marginBottom: "12px" }}>
                 <p style={sectionLabel}>Exercises</p>
 
@@ -599,10 +658,8 @@ export default function NewSessionPage({ userId, onBack }) {
             <button
                 onClick={startSession}
                 style={{
-                    background: accentColor,
-                    color: "white", border: "none",
-                    padding: "16px", borderRadius: "14px",
-                    fontSize: "16px", fontWeight: "600",
+                    background: accentColor, color: "white", border: "none",
+                    padding: "16px", borderRadius: "14px", fontSize: "16px", fontWeight: "600",
                     cursor: "pointer", width: "100%", marginTop: "8px",
                     boxShadow: `0 4px 16px ${accentColor}50`,
                     transition: "all 0.2s ease",
