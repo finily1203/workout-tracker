@@ -12,11 +12,102 @@ export default function ChatBot({ userId }) {
     ]);
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
+    const [pos, setPos] = useState(() => ({
+        x: window.innerWidth - 80,
+        y: window.innerHeight - 100,
+    }));
     const messagesEndRef = useRef(null);
+    const dragRef = useRef({
+        dragging: false,
+        offsetX: 0,
+        offsetY: 0,
+        startX: 0,
+        startY: 0,
+        moved: false,
+    });
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages, open]);
+
+    const clampPos = (x, y) => ({
+        x: Math.max(8, Math.min(x, window.innerWidth - 60)),
+        y: Math.max(8, Math.min(y, window.innerHeight - 80)),
+    });
+
+    const snapToEdge = (x, y) => {
+        const snapX = x < window.innerWidth / 2 ? 16 : window.innerWidth - 68;
+        return clampPos(snapX, y);
+    };
+
+    // Touch handlers
+    const onTouchStart = (e) => {
+        const touch = e.touches[0];
+        dragRef.current = {
+            dragging: true,
+            offsetX: touch.clientX - pos.x,
+            offsetY: touch.clientY - pos.y,
+            startX: touch.clientX,
+            startY: touch.clientY,
+            moved: false,
+        };
+    };
+
+    const onTouchMove = (e) => {
+        if (!dragRef.current.dragging) return;
+        e.preventDefault();
+        const touch = e.touches[0];
+        const dx = Math.abs(touch.clientX - dragRef.current.startX);
+        const dy = Math.abs(touch.clientY - dragRef.current.startY);
+        if (dx > 5 || dy > 5) dragRef.current.moved = true;
+        setPos(clampPos(
+            touch.clientX - dragRef.current.offsetX,
+            touch.clientY - dragRef.current.offsetY,
+        ));
+    };
+
+    const onTouchEnd = () => {
+        if (!dragRef.current.dragging) return;
+        dragRef.current.dragging = false;
+        if (dragRef.current.moved) {
+            setPos(prev => snapToEdge(prev.x, prev.y));
+        } else {
+            setOpen(o => !o);
+        }
+    };
+
+    // Mouse handlers (desktop drag)
+    const onMouseDown = (e) => {
+        dragRef.current = {
+            dragging: true,
+            offsetX: e.clientX - pos.x,
+            offsetY: e.clientY - pos.y,
+            startX: e.clientX,
+            startY: e.clientY,
+            moved: false,
+        };
+
+        const onMouseMove = (e) => {
+            if (!dragRef.current.dragging) return;
+            const dx = Math.abs(e.clientX - dragRef.current.startX);
+            const dy = Math.abs(e.clientY - dragRef.current.startY);
+            if (dx > 5 || dy > 5) dragRef.current.moved = true;
+            setPos(clampPos(
+                e.clientX - dragRef.current.offsetX,
+                e.clientY - dragRef.current.offsetY,
+            ));
+        };
+
+        const onMouseUp = () => {
+            dragRef.current.dragging = false;
+            if (!dragRef.current.moved) setOpen(o => !o);
+            window.removeEventListener("mousemove", onMouseMove);
+            window.removeEventListener("mouseup", onMouseUp);
+        };
+
+        window.addEventListener("mousemove", onMouseMove);
+        window.addEventListener("mouseup", onMouseUp);
+    };
 
     const sendMessage = async () => {
         if (!input.trim() || loading) return;
@@ -273,19 +364,26 @@ export default function ChatBot({ userId }) {
 
             {/* Floating Button */}
             <button
-                onClick={() => setOpen(!open)}
+                onTouchStart={onTouchStart}
+                onTouchMove={onTouchMove}
+                onTouchEnd={onTouchEnd}
+                onMouseDown={onMouseDown}
                 style={{
-                    position: "fixed", bottom: "28px", right: "28px",
+                    position: "fixed",
+                    left: `${pos.x}px`,
+                    top: `${pos.y}px`,
                     width: "52px", height: "52px", borderRadius: "16px",
                     background: open ? "#2C2C2E" : "linear-gradient(135deg, #30D158, #0A84FF)",
                     border: open ? "1px solid #38383A" : "none",
-                    cursor: "pointer",
+                    cursor: "grab",
                     fontSize: open ? "22px" : "24px",
                     zIndex: 1000,
                     boxShadow: open ? "none" : "0 4px 20px rgba(10,132,255,0.4)",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+                    transition: "background 0.25s, box-shadow 0.25s",
                     color: open ? "#8E8E93" : "white",
+                    touchAction: "none",
+                    userSelect: "none",
                 }}
             >
                 {open ? "×" : "🤖"}
