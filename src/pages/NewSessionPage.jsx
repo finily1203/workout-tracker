@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createSession } from "../api/sessions";
 
 const TEMPLATES = {
@@ -50,6 +50,14 @@ const TEMPLATES = {
 
 const MUSCLE_OPTIONS = ["Chest", "Back", "Shoulders", "Biceps", "Triceps", "Legs", "Core"];
 
+const formatTime = (secs) => {
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = secs % 60;
+    if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+    return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+};
+
 export default function NewSessionPage({ userId, onBack }) {
     const [step, setStep] = useState("template");
     const [notes, setNotes] = useState("");
@@ -58,6 +66,19 @@ export default function NewSessionPage({ userId, onBack }) {
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
     const [selectedTemplate, setSelectedTemplate] = useState(null);
+    const [elapsed, setElapsed] = useState(0);
+    const startTimeRef = useRef(null);
+    const intervalRef = useRef(null);
+
+    useEffect(() => {
+        if (step === "active") {
+            startTimeRef.current = Date.now();
+            intervalRef.current = setInterval(() => {
+                setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000));
+            }, 1000);
+        }
+        return () => clearInterval(intervalRef.current);
+    }, [step]);
 
     const loadTemplate = (key) => {
         const t = TEMPLATES[key];
@@ -76,6 +97,15 @@ export default function NewSessionPage({ userId, onBack }) {
         setStep("logging");
     };
 
+    const startSession = () => {
+        setExercises(prev => prev.map(ex => ({
+            ...ex,
+            sets: ex.sets.map(s => ({ ...s, done: false }))
+        })));
+        setElapsed(0);
+        setStep("active");
+    };
+
     const toggleMuscle = (m) => {
         setMuscleGroups(prev =>
             prev.includes(m) ? prev.filter(x => x !== m) : [...prev, m]
@@ -90,8 +120,11 @@ export default function NewSessionPage({ userId, onBack }) {
     };
 
     const addSet = (exIdx) => {
+        const newSet = step === "active"
+            ? { reps: "", weight: "", done: false }
+            : { reps: "", weight: "" };
         setExercises(prev => prev.map((ex, i) =>
-            i === exIdx ? { ...ex, sets: [...ex.sets, { reps: "", weight: "" }] } : ex
+            i === exIdx ? { ...ex, sets: [...ex.sets, newSet] } : ex
         ));
     };
 
@@ -102,7 +135,10 @@ export default function NewSessionPage({ userId, onBack }) {
     };
 
     const addExercise = () => {
-        setExercises(prev => [...prev, { name: "", sets: [{ reps: "", weight: "" }], note: "" }]);
+        const newEx = step === "active"
+            ? { name: "", sets: [{ reps: "", weight: "", done: false }], note: "" }
+            : { name: "", sets: [{ reps: "", weight: "" }], note: "" };
+        setExercises(prev => [...prev, newEx]);
     };
 
     const removeExercise = (idx) => {
@@ -114,9 +150,10 @@ export default function NewSessionPage({ userId, onBack }) {
     };
 
     const handleSave = async () => {
+        clearInterval(intervalRef.current);
         setSaving(true);
         try {
-            await createSession({ userId, muscleGroups, notes, exercises });
+            await createSession({ userId, muscleGroups, notes, exercises, duration: elapsed });
             setSaved(true);
         } catch {
             alert("Error saving session");
@@ -127,6 +164,9 @@ export default function NewSessionPage({ userId, onBack }) {
 
     const activeTemplate = selectedTemplate ? TEMPLATES[selectedTemplate] : null;
     const accentColor = activeTemplate?.color || "#0A84FF";
+
+    const totalSets = exercises.reduce((acc, ex) => acc + ex.sets.length, 0);
+    const doneSets = exercises.reduce((acc, ex) => acc + ex.sets.filter(s => s.done).length, 0);
 
     const inputStyle = {
         background: "#2C2C2E",
@@ -156,6 +196,7 @@ export default function NewSessionPage({ userId, onBack }) {
         textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "10px",
     };
 
+    // ── Saved screen ──────────────────────────────────────────────────────────
     if (saved) return (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "50vh", gap: "12px" }}>
             <div style={{
@@ -166,6 +207,7 @@ export default function NewSessionPage({ userId, onBack }) {
             }}>✓</div>
             <h2 style={{ fontSize: "24px", fontWeight: "700", color: "#FFFFFF" }}>Session Saved!</h2>
             <p style={{ color: "#8E8E93", fontSize: "15px" }}>Great work today. Keep it up!</p>
+            <p style={{ color: "#30D158", fontSize: "20px", fontWeight: "700" }}>⏱ {formatTime(elapsed)}</p>
             <button
                 onClick={onBack}
                 style={{
@@ -177,6 +219,7 @@ export default function NewSessionPage({ userId, onBack }) {
         </div>
     );
 
+    // ── Template selection ────────────────────────────────────────────────────
     if (step === "template") return (
         <div>
             <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "24px" }}>
@@ -251,9 +294,162 @@ export default function NewSessionPage({ userId, onBack }) {
         </div>
     );
 
+    // ── Active live session ───────────────────────────────────────────────────
+    if (step === "active") return (
+        <div>
+            {/* Timer bar */}
+            <div style={{
+                background: "#1C1C1E", border: "1px solid #38383A",
+                borderRadius: "16px", padding: "16px 20px",
+                marginBottom: "16px", display: "flex",
+                alignItems: "center", justifyContent: "space-between",
+            }}>
+                <div>
+                    <p style={{ color: "#8E8E93", fontSize: "12px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "4px" }}>Session Time</p>
+                    <p style={{ color: "#30D158", fontSize: "36px", fontWeight: "700", fontVariantNumeric: "tabular-nums", letterSpacing: "-1px" }}>
+                        {formatTime(elapsed)}
+                    </p>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                    <p style={{ color: "#8E8E93", fontSize: "12px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "4px" }}>Sets Done</p>
+                    <p style={{ fontSize: "28px", fontWeight: "700", color: "#FFFFFF" }}>
+                        <span style={{ color: accentColor }}>{doneSets}</span>
+                        <span style={{ color: "#48484A" }}> / {totalSets}</span>
+                    </p>
+                </div>
+            </div>
+
+            {/* Progress bar */}
+            <div style={{ background: "#2C2C2E", borderRadius: "4px", height: "4px", marginBottom: "20px", overflow: "hidden" }}>
+                <div style={{
+                    height: "100%", borderRadius: "4px",
+                    background: accentColor,
+                    width: totalSets > 0 ? `${(doneSets / totalSets) * 100}%` : "0%",
+                    transition: "width 0.3s ease",
+                }} />
+            </div>
+
+            {/* Exercises */}
+            {exercises.map((ex, exIdx) => {
+                const exDone = ex.sets.every(s => s.done);
+                return (
+                    <div key={exIdx} style={{
+                        background: "#1C1C1E", borderRadius: "14px", padding: "16px",
+                        marginBottom: "10px",
+                        border: exDone ? `1px solid ${accentColor}60` : "1px solid #38383A",
+                        transition: "border-color 0.2s ease",
+                    }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+                            <div style={{
+                                width: "22px", height: "22px", borderRadius: "50%", flexShrink: 0,
+                                background: exDone ? accentColor : "#2C2C2E",
+                                border: exDone ? "none" : "2px solid #48484A",
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                fontSize: "13px", transition: "all 0.2s ease",
+                            }}>
+                                {exDone && "✓"}
+                            </div>
+                            <span style={{
+                                fontWeight: "700", fontSize: "16px",
+                                color: exDone ? "#8E8E93" : "#FFFFFF",
+                                textDecoration: exDone ? "line-through" : "none",
+                                transition: "all 0.2s ease",
+                            }}>
+                                {ex.name || "Unnamed Exercise"}
+                            </span>
+                        </div>
+
+                        {ex.note && (
+                            <p style={{ color: "#48484A", fontSize: "12px", fontStyle: "italic", marginBottom: "12px" }}>
+                                💡 {ex.note}
+                            </p>
+                        )}
+
+                        <div style={{ display: "flex", gap: "8px", marginBottom: "6px" }}>
+                            <span style={{ width: "52px", flexShrink: 0 }} />
+                            <span style={{ color: "#8E8E93", fontSize: "11px", width: "72px", textAlign: "center", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.3px" }}>Reps</span>
+                            <span style={{ color: "#8E8E93", fontSize: "11px", width: "72px", textAlign: "center", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.3px" }}>kg</span>
+                        </div>
+
+                        {ex.sets.map((set, setIdx) => (
+                            <div key={setIdx} style={{
+                                display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px",
+                                opacity: set.done ? 0.45 : 1, transition: "opacity 0.2s ease",
+                            }}>
+                                <span style={{ color: "#48484A", fontSize: "13px", width: "52px", flexShrink: 0, fontWeight: "500" }}>
+                                    Set {setIdx + 1}
+                                </span>
+                                <input
+                                    type="number"
+                                    style={{ ...smallInputStyle, textDecoration: set.done ? "line-through" : "none" }}
+                                    value={set.reps}
+                                    onChange={e => updateSet(exIdx, setIdx, "reps", e.target.value)}
+                                    placeholder="—"
+                                />
+                                <input
+                                    type="number"
+                                    style={{ ...smallInputStyle, textDecoration: set.done ? "line-through" : "none" }}
+                                    value={set.weight}
+                                    onChange={e => updateSet(exIdx, setIdx, "weight", e.target.value)}
+                                    placeholder="—"
+                                />
+                                <button
+                                    onClick={() => updateSet(exIdx, setIdx, "done", !set.done)}
+                                    style={{
+                                        width: "36px", height: "36px", borderRadius: "50%", border: "none",
+                                        background: set.done ? "#30D158" : "#2C2C2E",
+                                        color: set.done ? "#FFFFFF" : "#48484A",
+                                        cursor: "pointer", fontSize: "16px", flexShrink: 0,
+                                        display: "flex", alignItems: "center", justifyContent: "center",
+                                        transition: "all 0.2s ease",
+                                        boxShadow: set.done ? "0 2px 8px rgba(48,209,88,0.4)" : "none",
+                                    }}
+                                >✓</button>
+                            </div>
+                        ))}
+
+                        <button
+                            onClick={() => addSet(exIdx)}
+                            style={{
+                                background: "none", border: "none", color: accentColor,
+                                cursor: "pointer", fontSize: "14px", fontWeight: "500",
+                                padding: "6px 0", marginTop: "4px",
+                            }}
+                        >+ Add Set</button>
+                    </div>
+                );
+            })}
+
+            <button
+                onClick={addExercise}
+                style={{
+                    background: "#1C1C1E", border: "1.5px dashed #48484A",
+                    color: "#8E8E93", padding: "14px", borderRadius: "14px",
+                    cursor: "pointer", fontSize: "15px", fontWeight: "500",
+                    width: "100%", marginBottom: "12px",
+                }}
+            >+ Add Exercise</button>
+
+            <button
+                onClick={handleSave}
+                disabled={saving}
+                style={{
+                    background: saving ? "#48484A" : "#30D158",
+                    color: "white", border: "none",
+                    padding: "16px", borderRadius: "14px",
+                    fontSize: "16px", fontWeight: "600",
+                    cursor: saving ? "default" : "pointer",
+                    width: "100%",
+                    boxShadow: saving ? "none" : "0 4px 16px rgba(48,209,88,0.3)",
+                    transition: "all 0.2s ease",
+                }}
+            >{saving ? "Saving..." : "End Session"}</button>
+        </div>
+    );
+
+    // ── Setup / logging ───────────────────────────────────────────────────────
     return (
         <div>
-            {/* Header */}
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "24px" }}>
                 <button onClick={() => setStep("template")} style={{
                     background: "#2C2C2E", border: "none", color: "#FFFFFF",
@@ -271,8 +467,8 @@ export default function NewSessionPage({ userId, onBack }) {
                 )}
             </div>
 
-            <h2 style={{ fontSize: "28px", fontWeight: "700", marginBottom: "4px", color: "#FFFFFF" }}>Log Session</h2>
-            <p style={{ color: "#8E8E93", fontSize: "15px", marginBottom: "24px" }}>Fill in your weights and reps</p>
+            <h2 style={{ fontSize: "28px", fontWeight: "700", marginBottom: "4px", color: "#FFFFFF" }}>Set Up Session</h2>
+            <p style={{ color: "#8E8E93", fontSize: "15px", marginBottom: "24px" }}>Add your exercises, then start when ready</p>
 
             {/* Notes */}
             <div style={{ background: "#1C1C1E", borderRadius: "14px", padding: "16px", marginBottom: "12px", border: "1px solid #38383A" }}>
@@ -401,19 +597,17 @@ export default function NewSessionPage({ userId, onBack }) {
             </div>
 
             <button
-                onClick={handleSave}
-                disabled={saving}
+                onClick={startSession}
                 style={{
-                    background: saving ? "#48484A" : "#0A84FF",
+                    background: accentColor,
                     color: "white", border: "none",
                     padding: "16px", borderRadius: "14px",
                     fontSize: "16px", fontWeight: "600",
-                    cursor: saving ? "default" : "pointer",
-                    width: "100%", marginTop: "8px",
-                    boxShadow: saving ? "none" : "0 4px 16px rgba(10,132,255,0.3)",
+                    cursor: "pointer", width: "100%", marginTop: "8px",
+                    boxShadow: `0 4px 16px ${accentColor}50`,
                     transition: "all 0.2s ease",
                 }}
-            >{saving ? "Saving..." : "Save Session"}</button>
+            >Start Session</button>
         </div>
     );
 }

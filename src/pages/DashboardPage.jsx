@@ -38,7 +38,7 @@ function DashboardPage({ user, onSignOut }) {
         <div style={{ background: "#000000", minHeight: "100vh" }}>
             <Navbar onSignOut={onSignOut} setPage={setPage} currentPage={page} />
 
-            <div style={{ padding: "28px 20px", maxWidth: "680px", margin: "0 auto" }}>
+            <div style={{ padding: "28px 20px 100px", maxWidth: "680px", margin: "0 auto" }}>
                 {page === "dashboard" && (
                     <div>
                         {/* Greeting */}

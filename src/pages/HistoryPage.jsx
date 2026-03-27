@@ -7,6 +7,16 @@ import {
 
 const CHART_COLORS = ["#0A84FF", "#FF453A", "#FF9F0A", "#30D158", "#BF5AF2"];
 
+const formatDuration = (secs) => {
+    if (!secs) return null;
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = secs % 60;
+    if (h > 0) return `${h}h ${m}m`;
+    if (m > 0) return `${m}m ${s}s`;
+    return `${s}s`;
+};
+
 function HistoryPage({ userId, onBack }) {
     const [sessions, setSessions] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -164,6 +174,11 @@ function HistoryPage({ userId, onBack }) {
                                         </div>
                                     </div>
                                     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                        {formatDuration(s.duration) && (
+                                            <span style={{ color: "#30D158", fontSize: "13px", fontWeight: "600" }}>
+                                                ⏱ {formatDuration(s.duration)}
+                                            </span>
+                                        )}
                                         <span style={{ color: "#8E8E93", fontSize: "13px" }}>
                                             {s.exercises?.length || 0} exercises
                                         </span>

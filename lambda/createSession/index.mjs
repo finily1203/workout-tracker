@@ -18,7 +18,8 @@ export const handler = async (event) => {
             date,
             muscleGroups: body.muscleGroups || [],
             notes: body.notes || "",
-            exercises: body.exercises || []
+            exercises: body.exercises || [],
+            duration: body.duration || 0
         };
 
         await docClient.send(new PutCommand({
