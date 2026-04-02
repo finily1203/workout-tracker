@@ -21,7 +21,7 @@ https://d3r1z6dwo5m47x.cloudfront.net
 - 🏋️ **Workout Logging** — Log exercises, sets, reps, and weight in real time
 - 📋 **Session History** — View all past workout sessions with full exercise details
 - 📈 **Progress Charts** — Interactive line charts showing strength progression over time (Recharts)
-- 🤖 **AI Fitness Chatbot** — Conversational AI coach powered by Groq (LLaMA 3.3) available on every page
+- 🤖 **AI Fitness Chatbot** — Conversational AI coach powered by Groq (LLaMA 3.3) available on every page *(AI may take up to 30 seconds to search and generate a response)*
 - 📝 **Workout Templates** — Pre-built 3-day Push/Pull/Legs split templates
 - ☁️ **Fully Serverless** — No servers to manage; auto-scales with demand
 - 🏗️ **Infrastructure as Code** — Entire AWS infrastructure defined and deployed with Terraform
