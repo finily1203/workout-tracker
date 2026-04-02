@@ -316,7 +316,8 @@ terraform destroy
 ## 📚 Course
 
 **CSC3156 - Mobile and Cloud Computing**
-Singapore Institute of Technology (SIT) × DigiPen Institute of Technology Singapore
+Singapore Institute of Technology (SIT)
+DigiPen Institute of Technology Singapore
 AY2025/2026
 
 ---
