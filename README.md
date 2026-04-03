@@ -293,7 +293,8 @@ terraform destroy
 We built this application with scalability in mind. Our roadmap for future iterations includes:
 - **Strict API Authorization:** Implementing Amazon API Gateway JWT authorisers linked to Cognito to ensure all routes are fully protected.
 - **Least-Privilege IAM Policies:** Refactoring the current Lambda execution roles from managed policies (`AmazonDynamoDBFullAccess`) to strict, inline policies scoped exclusively to our specific DynamoDB table ARNs.
-
+- **Social Features:** Allowing users to share their workout milestones or AI-generated routines with friends.
+- **Extended AI Capabilities:** Fine-tuning the Groq prompts to generate meal plans and recovery recommendations based on the user's workout intensity.
 
 ---
 
