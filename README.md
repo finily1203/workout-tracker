@@ -285,9 +285,15 @@ terraform destroy
 - **CI/CD credentials** — GitHub Actions secrets are used for all deployment credentials (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, etc.)
 - **Password policy** — Cognito enforces a minimum of 8 characters with mixed case, numbers, and email verification (`terraform/cognito.tf`)
 
-> **Known Limitations:**
-> - API Gateway routes do not currently have a JWT authoriser attached — endpoints are accessible without a valid Cognito token
-> - The Lambda IAM role uses the `AmazonDynamoDBFullAccess` managed policy rather than a least-privilege inline policy scoped to specific table ARNs
+
+---
+
+## Future Enhancements
+
+We built this application with scalability in mind. Our roadmap for future iterations includes:
+- **Strict API Authorization:** Implementing Amazon API Gateway JWT authorisers linked to Cognito to ensure all routes are fully protected.
+- **Least-Privilege IAM Policies:** Refactoring the current Lambda execution roles from managed policies (`AmazonDynamoDBFullAccess`) to strict, inline policies scoped exclusively to our specific DynamoDB table ARNs.
+
 
 ---
 
