@@ -296,7 +296,21 @@ We built this application with scalability in mind. Our roadmap for future itera
 - **Social Features:** Allowing users to share their workout milestones or AI-generated routines with friends.
 - **Extended AI Capabilities:** Fine-tuning the Groq prompts to generate meal plans and recovery recommendations based on the user's workout intensity.
 
+
 ---
+
+## API Reference
+
+The backend exposes a RESTful interface via Amazon API Gateway to manage workout sessions and interact with the AI chatbot.
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/sessions` | Creates a new workout session |
+| `GET` | `/sessions` | Retrieves a list of all workout sessions for the user |
+| `GET` | `/sessions/{sessionId}` | Retrieves detailed data for a specific workout session |
+| `PUT` | `/sessions/{sessionId}` | Updates an existing workout session |
+| `DELETE` | `/sessions/{sessionId}` | Deletes a workout session from history |
+| `POST` | `/recommend` | Sends user data/queries to the Groq API for AI fitness | 
 
 ## 📸 Screenshots
 
